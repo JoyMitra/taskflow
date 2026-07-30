@@ -1,0 +1,42 @@
+// TaskFlow Monolith — Module 1
+// Single Postgres database shared by all three domains (users, tasks,
+// notifications) living in one process. This is deliberately the "naive"
+// baseline: notifications are written directly to the DB in the same
+// request/transaction as the task assignment, with no queue or event bus.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  createdAt     DateTime       @default(now())
+  tasks         Task[]         @relation("AssignedTasks")
+  notifications Notification[]
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      String    @default("todo") // todo | in_progress | done
+  assigneeId  String?
+  assignee    User?     @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

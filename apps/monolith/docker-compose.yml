@@ -1,0 +1,35 @@
+# LOCAL DEVELOPMENT ONLY. This is not deployed to Coolify — it exists
+# purely to give you a Postgres instance to develop against on your local machine.
+# On Coolify, Postgres is provisioned as its own separate resource
+# (see README.md's Deployment section) and DATABASE_URL is injected as
+# an environment variable instead.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+      POSTGRES_DB: taskflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - taskflow_postgres_data:/var/lib/postgresql/data
+
+  # Separate instance (different port, different volume) so running
+  # tests never touches or truncates your local dev data.
+  postgres-test:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflowtest
+      POSTGRES_DB: taskflow_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - taskflow_postgres_test_data:/var/lib/postgresql/data
+
+volumes:
+  taskflow_postgres_data:
+  taskflow_postgres_test_data:

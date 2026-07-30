@@ -1,0 +1,35 @@
+{
+  "name": "monolith",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "test:migrate": "DATABASE_URL=\"postgresql://taskflow:taskflowtest@localhost:5433/taskflow_test?schema=public\" npx prisma migrate deploy",
+    "pretest": "npm run test:migrate",
+    "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@prisma/config": "^7.9.1",
+    "fastify": "^4.28.1",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.20.0",
+    "jest": "^29.7.0",
+    "prisma": "^7.9.1",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
