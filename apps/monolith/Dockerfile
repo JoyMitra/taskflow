@@ -8,8 +8,12 @@ COPY package.json ./
 RUN npm install
 COPY . .
 
+# prisma generate loads prisma.config.ts, so DATABASE_URL must exist even
+# though generate does not connect to the database.
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+
 # Generates the Prisma Client into node_modules based on prisma/schema.prisma.
-# Does NOT touch the database — no DATABASE_URL is needed at build time.
+# Does NOT touch the database — the placeholder URL is only for config loading.
 RUN npx prisma generate
 
 RUN npx tsc
@@ -22,6 +26,7 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/package.json ./package.json
 
 EXPOSE 3000
