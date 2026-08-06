@@ -1,0 +1,40 @@
+FROM node:20-slim AS build
+WORKDIR /app
+
+# Prisma's query engine needs openssl present on Debian slim images
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy shared library
+COPY shared /app/shared
+
+COPY users-service/package.json ./
+RUN npm install
+COPY users-service .
+
+# prisma generate loads prisma.config.ts, so DATABASE_URL must exist even
+# though generate does not connect to the database.
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+
+# Generates the Prisma Client into node_modules based on prisma/schema.prisma.
+# Does NOT touch the database — the placeholder URL is only for config loading.
+RUN npx prisma generate
+
+RUN npx tsc
+
+FROM node:20-slim
+WORKDIR /app
+
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
+COPY --from=build /app/package.json ./package.json
+
+EXPOSE 3001
+
+# Runs pending migrations against whatever DATABASE_URL Coolify injects at
+# runtime, then starts the server. This is why DATABASE_URL only needs to
+# exist as a runtime env var, not a build-time one.
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

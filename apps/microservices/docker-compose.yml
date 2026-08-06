@@ -1,0 +1,123 @@
+services:
+  # Microservices Databases
+  users-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+      POSTGRES_DB: taskflow_users
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow_users"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tasks-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+      POSTGRES_DB: taskflow_tasks
+    ports:
+      - "5441:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow_tasks"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  notifications-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+      POSTGRES_DB: taskflow_notifications
+    ports:
+      - "5442:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow_notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Test Database (shared for simplicity, using different DB names)
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflowtest
+      POSTGRES_DB: taskflow_test
+    ports:
+      - "5433:5432"
+
+  # RabbitMQ for Pub/Sub
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Microservices
+  users-service:
+    build:
+      context: .
+      dockerfile: users-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow@users-db:5432/taskflow_users?schema=public
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      PORT: 3001
+    depends_on:
+      users-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  tasks-service:
+    build:
+      context: .
+      dockerfile: tasks-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow@tasks-db:5432/taskflow_tasks?schema=public
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      PORT: 3002
+    depends_on:
+      tasks-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notifications-service:
+    build:
+      context: .
+      dockerfile: notifications-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow@notifications-db:5432/taskflow_notifications?schema=public
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      PORT: 3003
+    depends_on:
+      notifications-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    environment:
+      USERS_SERVICE_URL: http://users-service:3001
+      TASKS_SERVICE_URL: http://tasks-service:3002
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3003
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - users-service
+      - tasks-service
+      - notifications-service
