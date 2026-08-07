@@ -90,6 +90,12 @@ docker exec microservices-postgres-test-1 psql -U taskflow -d postgres -c "CREAT
 
 ### 3. Run Migrations & Execute Tests
 
+NOTE: You may see a compile time error due to the absence of a prisma client. Running the above command to (re) generate
+the client resolved the error. This happens because the client of a service is generated in node_modules. Hence,
+it gets overwritten everytime we run the tests for a service. The problem will not occur if we have a dedicated
+custom prisma client for each service, which is what we should do for production ready applications. Since this
+is a learning exercise, the default prisma client is sufficient.
+
 Generate Prisma clients for a service if you haven't:
 
 ```bash
