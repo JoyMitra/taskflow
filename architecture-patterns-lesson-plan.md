@@ -1,8 +1,7 @@
 # Learning Software Architecture Patterns with TypeScript + Coolify
 
 A hands-on lesson plan based on Martin Fowler's Application Architecture guide
-(https://martinfowler.com/architecture/), built around one evolving project
-rather than throwaway examples per pattern.
+(https://martinfowler.com/architecture/), built around one project.
 
 ## The Project: "TaskFlow"
 
@@ -12,8 +11,7 @@ A minimal task-management app with three natural domains:
 - **Notifications** — "task assigned to you", "task due soon"
 
 This is deliberately simple. The point isn't the app — it's watching the same
-three features get re-architected across modules. Small enough to rebuild
-pieces without burning a weekend; rich enough to have real service boundaries.
+three features get re-architected across modules. 
 
 ### Stack
 - **Backend:** Node.js + TypeScript, Fastify (lighter than Express, first-class
@@ -25,7 +23,7 @@ pieces without burning a weekend; rich enough to have real service boundaries.
   `apps/notifications-service`, `apps/web-account`, `apps/web-tasks`, etc.
   Each folder gets its own `Dockerfile` so Coolify can deploy it as an
   independent resource even though the code lives in one repo. This avoids
-  repo-sprawl while still giving you real independent-deployment practice.
+  repo-sprawl while still giving real independent-deployment practice.
 - **Deployment:** Coolify, one VPS, one resource per service/frontend
 
 ### Why a monorepo instead of separate repos per service
@@ -34,11 +32,11 @@ overhead (cross-repo versioning, shared type duplication) that isn't the
 point of this exercise. A monorepo with per-folder Dockerfiles gives you
 independent Coolify deployments — which is the property you're actually
 trying to learn — without the repo-management tax. You can always split
-repos later once the pattern itself is second nature.
+repos later once the pattern is learnt.
 
 ---
 
-## Module 0 — Setup (½ day)
+## Module 0 — Setup
 **Goal:** Coolify running on a real Linux VPS, monorepo scaffolded, one
 shared TS config, and a "hello world" service deployed end-to-end — so
 every later module starts from working infrastructure, not setup debugging.
@@ -97,7 +95,7 @@ This lets Coolify auto-deploy on push later. You can skip this for now and
 deploy from a public repo URL manually if you'd rather wire it up once
 you have real code.
 
-### Step 5 — Scaffold the monorepo (on your Mac)
+### Step 5 — Scaffold the monorepo
 ```bash
 mkdir taskflow && cd taskflow
 npm init -y
@@ -308,7 +306,7 @@ experience later on.
 
 ---
 
-## Module 1 — Monolith (2–3 days)
+## Module 1 — Monolith
 **Goal:** Baseline. One Fastify app, one Postgres DB, users + tasks +
 notifications all in one process.
 
@@ -316,26 +314,32 @@ notifications all in one process.
   written directly to a `notifications` table on task assignment
 - Deploy as a single Coolify resource with an attached Postgres
 
-**Checkpoint:** working end-to-end app, one deployable unit. Note the
-deploy time and what "redeploy" means here (whole app redeploys for any
-change).
+**Checkpoint:** working end-to-end app, one deployable unit. Questions to ponder:
+
+- What happens where a service fails?
+- What happens where a service is redeployed?
+- Can the services scale independently?
+- What data consistency guarantees do we have?
 
 ---
 
-## Module 2 — Microservices (3–5 days)
+## Module 2 — Microservices
 **Goal:** Split the monolith into `users-service`, `tasks-service`,
 `notifications-service`, each with its own DB, each its own Coolify resource.
 
-- Each service is a small Fastify app exposing its own REST API
-- `tasks-service` calls `users-service` over HTTP to validate assignees
-  (deliberately naive — you'll feel *why* this is fragile)
-- Add a thin API gateway (Fastify or Traefik) in front, so the frontend
-  talks to one URL
+- Each service is a small Fastify app with its own Postgres DB
+- The services communicate with each other through a pub/sub channel. 
+- The pub/sub channel is implemented using RabbitMQ. 
+- The channel decouples the services, allowing them to scale independently and reducing the blast radius of failures.
+- There is a thin API gateway (Fastify or Traefik) in front of the services, the outside world talks to one URL rather than the individual services.
 - Redeploy just `tasks-service` after a change and confirm the others are
   untouched
 
-**Checkpoint:** compare redeploy time/blast-radius to Module 1. This
-contrast is the whole lesson.
+**Checkpoint:** Several independent services, each with its own database and deployment unit. Questions to ponder:
+- What happens where a service fails?
+- What happens where a service is redeployed?
+- Can the services scale independently?
+- What data consistency guarantees do we have?
 
 ---
 
