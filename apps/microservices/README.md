@@ -54,6 +54,12 @@ The users, tasks, and notifications services cannot be directly accessed. They c
 accessed through the proxy routes defined in the API gateway in `api-gateway/src/index.ts`
 
 You can also run `docker ps` to see the running containers and verify if the services are running.
+Clean rebuild the services if you made changes and need to restart the services:
+
+```bash
+docker compose build --no-cache
+```
+
 
 ## Running Tests
 
